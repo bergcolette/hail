@@ -82,13 +82,6 @@ class Session(BaseSession):
         self._credentials = credentials
 
     async def request(self, method: str, url: str, **kwargs) -> aiohttp.ClientResponse:
-        auth_headers = await self._credentials.auth_headers()
-        if auth_headers:
-            if 'headers' in kwargs:
-                kwargs['headers'].update(auth_headers)
-            else:
-                kwargs['headers'] = auth_headers
-
         if self._params:
             if 'params' in kwargs:
                 request_params = kwargs['params']
@@ -99,11 +92,20 @@ class Session(BaseSession):
                 if k not in request_params:
                     request_params[k] = v
 
+        async def generate_access_tokens_and_request():
+            auth_headers = await self._credentials.auth_headers()
+            if auth_headers:
+                if 'headers' in kwargs:
+                    kwargs['headers'].update(auth_headers)
+                else:
+                    kwargs['headers'] = auth_headers
+            return await self._http_session.request(method, url, **kwargs)
+
         # retry by default
         retry = kwargs.pop('retry', True)
         if retry:
-            return await retry_transient_errors(self._http_session.request, method, url, **kwargs)
-        return await self._http_session.request(method, url, **kwargs)
+            return await retry_transient_errors(generate_access_tokens_and_request)
+        return await generate_access_tokens_and_request()
 
     async def close(self) -> None:
         async with AsyncExitStack() as stack:
