@@ -5,7 +5,7 @@ code.
 
 ## Background
 
-Hail source code is stored in a monolithic repository (monorepo) on
+Hail source code is located in a monolithic repository (monorepo) on
 GitHub at hail-is/hail.  $HAIL will denote the repository root below.
 Hail is open source and developed in the open.
 
